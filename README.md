@@ -17,7 +17,7 @@
 
 CatchLama is that reverse proxy, with three additions:
 
-- **Real API keys.** Create a key per project, see it once, revoke it at any time. A revoked key gets `401` on the very next request.
+- **Real API keys.** Create a key per project, see and copy it any time, revoke it whenever you want. A revoked key gets `401` on the very next request.
 - **Official code templates.** Pick a model and an SDK. You get the snippet from the vendor's official docs, extracted verbatim (only the model name changes), plus the env vars to point it at your machine.
 - **Lives in the menu bar.** It shows whether Ollama and the proxy are up. The llama icon switches while a request is in flight.
 
@@ -38,7 +38,7 @@ same code, two envs ───┤
 
 ## Features
 
-- Per-project API keys (`clk-…`, 256-bit random). Only a **SHA-256 hash** is stored, and the key is shown **once**.
+- Per-project API keys (`clk-…`, 256-bit random), always visible in the app. Pick a key and it goes straight into the template.
 - Accepts both `Authorization: Bearer` (OpenAI SDKs) and `x-api-key` (Anthropic SDKs).
 - Vendor-shaped errors: OpenAI-style `invalid_api_key` on `/v1/*` and Anthropic-style `authentication_error` on `/v1/messages`, so SDKs raise their normal `AuthenticationError`.
 - True streaming pass-through (SSE chunks are forwarded as they arrive, not buffered).
@@ -58,8 +58,8 @@ cd CatchLama
 ```
 
 1. Click the llama in the menu bar.
-2. **API Keys** → name it (e.g. `my-side-project`) → **Create**. Copy the key now; it won't be shown again.
-3. Pick a model, then pick a template. Copy the **env** block and the **code** block.
+2. **Keys** → name it (e.g. `my-side-project`) → **Create**. The new key is selected automatically.
+3. Pick a model and a template. Copy step **1** (env) into your terminal, then run step **2** (code) as-is.
 
 ```bash
 export OPENAI_BASE_URL=http://localhost:11435/v1
@@ -110,7 +110,7 @@ CatchLama is a single native Swift app: a SwiftUI `MenuBarExtra` UI plus an embe
 ## Security model (short version)
 
 - Listens on **127.0.0.1 only**. Nothing is exposed to the network.
-- Keys are 256-bit random. Only their SHA-256 hashes are written to `~/Library/Application Support/CatchLama/keys.json`.
+- Keys are 256-bit random and stored in `~/Library/Application Support/CatchLama/keys.json` with owner-only permissions (`0600`), so the app can always show them. Requests are matched by SHA-256 hash.
 - Only `/v1/*` is forwarded; Ollama's model-management API is not reachable through CatchLama.
 - There is no TLS, because traffic never leaves the machine. Read the deep dive before putting it on a network.
 

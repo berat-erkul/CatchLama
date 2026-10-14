@@ -180,17 +180,16 @@ With these shapes the SDKs behave exactly as they do against the real provider: 
 ```mermaid
 stateDiagram-v2
     [*] --> Created: create(name)
-    Created --> Shown: plaintext returned once
-    Shown --> Active: user copies it
+    Created --> Active: selected, shown in the env template
     Active --> Active: validate() stamps lastUsedAt
     Active --> Revoked: revoke(id)
     Revoked --> [*]: next request gets 401
 ```
 
 - **Format:** `clk-` + 32 bytes from `SystemRandomNumberGenerator`, which is cryptographically secure on Apple platforms, then base64url-encoded. That gives 256 bits of entropy.
-- **Storage:** `~/Library/Application Support/CatchLama/keys.json` holds `{id, name, prefix, sha256, createdAt, lastUsedAt}`. The plaintext is never written to disk; a unit test asserts this.
-- **Why SHA-256 without salt or bcrypt?** Salts and slow hashes protect *low-entropy* secrets such as passwords from dictionary attacks. A 256-bit random key cannot be brute-forced, so a fast unsalted hash is a common, sufficient choice for API keys.
-- **Why show it once?** It is what real providers do, and it means the app never needs to store or display a secret after creation. The freshly created key is also inserted into the env template so you can copy both at once.
+- **Storage:** `~/Library/Application Support/CatchLama/keys.json` holds `{id, name, prefix, sha256, secret, createdAt, lastUsedAt}`. The file is written with owner-only permissions (`0600`); a unit test asserts this.
+- **Always visible, not show-once.** v0.1 copied the cloud providers: it showed a key once and stored only its hash. In practice, for a tool that lives on your own machine, that was friction without a payoff. Creating a second key made the first one impossible to find again, and the same user can read Ollama directly anyway (see [§10](#10-security-model)). So keys are now stored in full, listed in the sidebar, and selecting one puts it into the env template.
+- **Why keep the SHA-256 at all?** Requests are still matched by hash, so keys created by v0.1 (hash only, no `secret`) keep working. The UI shows those as "full key not stored" and suggests recreating them. Salts and slow hashes would only matter for *low-entropy* secrets such as passwords; a 256-bit random key cannot be brute-forced.
 - **Revocation** removes the hash from the in-memory array and the file. The next request fails, with no restart and no cache.
 
 ## 6. Templates: identical code, different environment
@@ -308,7 +307,7 @@ All of the following was run on 2026-10-14 (macOS 26.6, Apple Silicon, Ollama 0.
 
 | What | How | Result |
 | --- | --- | --- |
-| Key lifecycle | `swift test` (`keyLifecycle`) | create, validate, wrong key, reload from disk, plaintext not on disk, revoke: ✅ |
+| Key lifecycle | `swift test` (`keyLifecycle`) | create, validate, wrong key, reload from disk (key still visible), file mode `0600`, revoke: ✅ |
 | Templates render | `swift test` (`templatesFillEveryPlaceholder`) | every template has the key and model and no leftover `{{` ✅ |
 | Auth | curl: no key / wrong key / Anthropic route | 401 in the right shape ✅ |
 | SDK errors | Python OpenAI and Anthropic with a wrong key | `AuthenticationError` 401 ✅ |
@@ -327,13 +326,12 @@ All of the following was run on 2026-10-14 (macOS 26.6, Apple Silicon, Ollama 0.
 
 - Requests that go *through* CatchLama need a valid, unrevoked key.
 - Only inference endpoints (`/v1/*`) are reachable through it.
-- Keys are never stored in plaintext.
 
 **What it does not protect (be honest about this):**
 
 - **On the same machine, Ollama is still reachable directly on `127.0.0.1:11434`.** Any local process can skip CatchLama. Locally, keys are about realism, per-project organisation and revocation, not about stopping local malware.
 - There is no TLS. That is fine on loopback, but a LAN mode would need it (or a tunnel).
-- `keys.json` is protected only by normal user file permissions. That is acceptable, because it only contains hashes.
+- `keys.json` contains the full keys, protected by owner-only file permissions (`0600`). Any process running as your user can read it, but that same process could call Ollama on `:11434` directly, so locally nothing is lost. A LAN mode should move keys to the Keychain.
 
 The real security payoff comes with **LAN mode** (roadmap): CatchLama binds to the network while Ollama stays on loopback. Then the *only* way in from outside is a keyed, inference-only proxy.
 
@@ -346,7 +344,8 @@ The real security payoff comes with **LAN mode** (roadmap): CatchLama binds to t
 5. **Read the source when the docs are ambiguous.** Spring AI 2.0's base-URL behaviour was settled by `OpenAiSetup.java` at the release tag, not by a blog post.
 6. **Platform conventions change.** The Big Sur icon grid is a liability on macOS 26; a full-bleed square is what Tahoe wants.
 7. **Measure the thing you mean.** "Is it streaming?" means "are the chunks spread out in time?", not "is the first token early?".
-8. **Small and boring is a feature.** It is one process, two dependencies, a JSON file and about 550 lines of Swift, a third of which is the generated templates. Everything has one obvious place to live.
+8. **Copying a pattern needs its reason to come along.** Show-once keys make sense for a cloud provider that has to defend against leaks; on your own Mac they only hid your keys from you. v0.2 dropped that and kept the hash for backward compatibility.
+9. **Small and boring is a feature.** It is one process, two dependencies, a JSON file and about 550 lines of Swift, a third of which is the generated templates. Everything has one obvious place to live.
 
 ## 12. Roadmap
 

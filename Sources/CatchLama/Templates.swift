@@ -5,13 +5,13 @@
 /// Resmiden tek fark: model adı {{MODEL}} ile değişiyor; curl'de URL env'den geliyor (yoksa resmi URL).
 /// SDK'lar base URL + key'i env'den okuduğu için gerçek sağlayıcıya geçmek = sadece env değiştirmek.
 enum Template: String, CaseIterable, Identifiable {
-    case openaiPython = "OpenAI · Python"
-    case openaiJS = "OpenAI · JavaScript"
-    case openaiJava = "OpenAI · Java"
-    case openaiCurl = "OpenAI · curl"
-    case anthropicPython = "Anthropic · Python"
-    case anthropicTS = "Anthropic · TypeScript"
-    case anthropicCurl = "Anthropic · curl"
+    case openaiPython = "OpenAI Python"
+    case openaiJS = "OpenAI JavaScript"
+    case openaiJava = "OpenAI Java"
+    case openaiCurl = "OpenAI curl"
+    case anthropicPython = "Anthropic Python"
+    case anthropicTS = "Anthropic TypeScript"
+    case anthropicCurl = "Anthropic curl"
     case springAI = "Spring AI 2.x"
 
     var id: String { rawValue }
