@@ -9,6 +9,12 @@
   Your OpenAI / Anthropic / Spring AI code stays <i>identical</i> to the cloud version, so switching is just an env change.
 </p>
 
+<img width="1048" height="660" alt="Screenshot 2026-10-14 at 15 16 25" src="https://github.com/user-attachments/assets/2a44b164-57bf-4cea-83e5-41e2ffed4bfb" />
+
+
+<img width="933" height="620" alt="Screenshot 2026-10-14 at 15 15 48" src="https://github.com/user-attachments/assets/210b071d-6ff2-4e45-882b-29a3e833b745" />
+
+
 ---
 
 ## Why
